@@ -32,7 +32,7 @@ public class ClientStart {
 
 		while(stop) {
 			
-			viewRoad.gameGO();
+			viewRoad.gameGO(3);
 			
 			Scanner gameCommandScan = new Scanner(System.in);
 			int gameCommand = gameCommandScan.nextInt();
