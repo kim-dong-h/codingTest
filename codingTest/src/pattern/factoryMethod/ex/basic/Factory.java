@@ -1,7 +1,5 @@
 package pattern.factoryMethod.ex.basic;
 
-import java.util.List;
-
 public abstract class Factory {
 
 	public final Product create(String owner) {
