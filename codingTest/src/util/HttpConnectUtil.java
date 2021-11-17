@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -22,67 +23,57 @@ public class HttpConnectUtil {
 	
 	private static Map<String, String> uriMap = new HashMap<String, String>();
 	private static Map<String, String> paramMap = new HashMap<String, String>();
-	private static String searchKey = "";
 	
 	public HttpConnectUtil() {
-		searchKey = "229";
 		
-		uriMap.put("187", "/");
-		uriMap.put("229", "/");
-		
-		paramMap.put("187", "{\"REQUEST\":\n"
-				+ "    {\n"
-				+ "    \"V_NAME\" : \"송수희\",\n"
-				+ "    \"V_PHONE_MOBILE\" : \"\",\n"
-				+ "    \"V_IPIN_CI\" : \"\",\n"
-				+ "    \"V_IPIN_DI\" : \"\"\n"
-				+ "    }\n"
-				+ "}");
-		
-		paramMap.put("229", "{\"REQUEST\":\n"
-				+ "    {\n"
-				+ "    \"V_CID\" : \"\",\n"
-				+ "    \"V_NAME\" : \"\",\n"
-				+ "    \"V_TEL_NO\" : \"\",\n"
-				+ "    \"V_GENDER\" : \"\" ,\n"
-				+ "    \"V_JOIN_FROM\" : \"\",\n"
-				+ "    \"V_JOIN_FROM_DATE\" : \"\",\n"
-				+ "    \"V_JOIN_TO_DATE\" : \"\",\n"
-				+ "    \"V_SHOPCODE\" : \"\",\n"
-				+ "    \"V_SALE_FROM_DATE\" : \"\",\n"
-				+ "    \"V_SALE_TO_DATE\" : \"\",\n"
-				+ "    \"V_PAGESIZE\": \"10\",\n"
-				+ "    \"V_PAGENUMBER\":\"1\"\n"
-				+ "    }\n"
-				+ "}");
 	}
 	
 	
-	public static void main(String[] args) {
+	public static String compareData(String searchKey) {
 				
+		String resultData = "";
+		
 		HttpConnectUtil util = new HttpConnectUtil();
 		
 		String newUrlHost = localIp + uriMap.get(searchKey);
 		String oldUrlHost = devIp + uriMap.get(searchKey);
+		
+		
 		
 		String paramJson = paramMap.get(searchKey);
 		
 		try {
 			
 			JSONObject newProjectJson =  util.httpConnectToJson(newUrlHost, paramJson, false);
-			JSONArray newJsonArray = (JSONArray) newProjectJson.get("RESPONSE_DATA");
-			Map<String, Object> newMap = newJsonArray.getJSONObject(0).toMap();
+			
+			Map<String, Object> newMap = new HashMap<String, Object>();
+			
+			
+			if(newProjectJson.get("RESPONSE_DATA") instanceof JSONObject){
+				newMap = ((JSONObject) newProjectJson.get("RESPONSE_DATA")).toMap();
+			}else {
+				
+				JSONArray newJsonArray = (JSONArray) newProjectJson.get("RESPONSE_DATA");
+				newMap = newJsonArray.getJSONObject(0).toMap();
+			}
 			
 			JSONObject oldProjectJson =  util.httpConnectToJson(oldUrlHost, paramJson, true);
-			JSONArray oldJsonArray = (JSONArray) oldProjectJson.get("RESPONSE_DATA");
-			Map<String, Object> oldMap = oldJsonArray.getJSONObject(0).toMap();
+			
+			Map<String, Object> oldMap = new HashMap<String, Object>();
+			if(oldProjectJson.get("RESPONSE_DATA") instanceof JSONObject) {
+				oldMap = ((JSONObject)oldProjectJson.get("RESPONSE_DATA")).toMap();
+			}else {
+				JSONArray oldJsonArray = (JSONArray) oldProjectJson.get("RESPONSE_DATA");
+				oldMap = oldJsonArray.getJSONObject(0).toMap();				
+			}
+			
 			
 			String failCompare = "";
 			
 			int keyCnt = 0;
-			int isnullCnt = 0;
 			int valueCnt = 0;
 			
+			resultData += "OLD    /    NEW \n";
 			for(Map.Entry<String, Object> map : newMap.entrySet()) {
 				String newKey = map.getKey();
 				String newValue = String.valueOf(map.getValue());
@@ -90,20 +81,25 @@ public class HttpConnectUtil {
 					String upperKey = map2.getKey().toUpperCase();
 					String oldValue = String.valueOf(map2.getValue());
 					if(newKey.equals(upperKey)) {
-						System.out.println(upperKey + " / " +newKey);
-						System.out.println(oldValue + " / " +newValue);
+						resultData += upperKey + " / " +newKey +"\n";
+						resultData += oldValue + " / " +newValue +"\n";
+//						System.out.println(upperKey + " / " +newKey);
+//						System.out.println(oldValue + " / " +newValue);
 						keyCnt++;
 						if(!newValue.equals("null") && !oldValue.equals("null")) {
 							if(newValue.equals(oldValue)) {
 								valueCnt++;
-								System.out.println("O");
+//								System.out.println("OK");
+								resultData += "OK \n";
 							}else {
 								failCompare += newKey + " / ";
-								System.out.println("X");
+//								System.out.println("NO");
+								resultData += "NO \n";
 
 							}
 						}
-						System.out.println("------------------");
+//						System.out.println("------------------");
+						resultData += "------------------------ \n";
 						break;
 					}
 				}
@@ -111,16 +107,19 @@ public class HttpConnectUtil {
 			
 			FileUploadUtil fileUtil = new FileUploadUtil();
 			
-			System.out.println("key Count = "+keyCnt + " / value Count = "+ valueCnt);
-			System.out.println("fail Value = " + failCompare);
+			resultData += "key Count = "+keyCnt + " / value Count = "+ valueCnt +" \n";
+			resultData += "fail Value = " + failCompare + " \n";
+//			System.out.println("key Count = "+keyCnt + " / value Count = "+ valueCnt);
+//			System.out.println("fail Value = " + failCompare);
 			
-			String textValue = "CRM-IF-"+ searchKey +" = 데이터 틀림 "+ failCompare;
+			String textValue = "CRM-IF-"+ searchKey +" = 데이터 틀림  "+ failCompare;
 			
 			fileUtil.FileUpload(textValue);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
+		return resultData;
 		
 	}
 	
@@ -154,7 +153,6 @@ public class HttpConnectUtil {
 			conn.setRequestProperty("Content-Type", "application/json");
 			conn.setRequestProperty("Accept", "*/*");
 			conn.setRequestProperty("User-Agent", userAgent);
-			conn.setRequestProperty("Authorization", "");
 			conn.setRequestMethod("POST");
 			
 			// 서버로 json param 보내기 

@@ -42,8 +42,17 @@
 	  	<artifactId>json-simple</artifactId>
 	  	<version>1.1</version>
 	   </dependency>
-
-
-	  
+	  <!-- ssh 접속 라이브러리  -->
+	  <dependency>
+	      <groupId>com.jcraft</groupId>
+	      <artifactId>jsch</artifactId>
+	      <version>0.1.55</version>
+	  </dependency>
+	<!-- excel 라이브러리 -->
+	<dependency>
+	    <groupId>org.apache.poi</groupId>
+	    <artifactId>poi-ooxml</artifactId>
+	    <version>3.17</version>
+	</dependency>
   </dependencies>
 </project>
